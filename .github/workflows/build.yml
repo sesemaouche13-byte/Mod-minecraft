@@ -1,5 +1,5 @@
 
-name: Build Minecraft Mod
+name: Build AquaPower
 
 on:
   push:
@@ -14,26 +14,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Extract AquaPower source
+        run: unzip -q aquapower-mod-source.zip
 
       - name: Set up Java 21
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
+          cache: gradle
 
       - name: Set up Gradle 9.2.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.2.1'
 
-      - name: Build mod
+      - name: Build AquaPower
+        working-directory: aquapower
         run: gradle build --no-daemon
 
-      - name: Upload JAR
+      - name: Prepare mod JAR
+        working-directory: aquapower
+        shell: bash
+        run: |
+          JAR="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)"
+          if [ -z "$JAR" ]; then
+            echo "Aucun JAR de mod trouvé."
+            exit 1
+          fi
+          mkdir -p ../dist
+          cp "$JAR" ../dist/aquapower-1.0.0.jar
+
+      - name: Upload AquaPower JAR
         uses: actions/upload-artifact@v4
         with:
-          name: livefx-jar
-          path: build/libs/*.jar
+          name: aquapower-jar
+          path: dist/aquapower-1.0.0.jar
           if-no-files-found: error
           retention-days: 14
